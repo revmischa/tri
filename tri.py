@@ -5,6 +5,9 @@ import sys
 import random
 from math import pi
 
+trisize = 0.05
+gentriframes = 5  # new tri every X frames
+
 try:
     from OpenGL.GL import *
     from sdl2 import *
@@ -20,25 +23,103 @@ class TriGenerator(sdl2ext.Applicator):
         self.componenttypes = [ TriPos, TriColor ]
         self.framecount = 0
         self.initial = None
-    def process(self, world, componentsets):
+    def process(self, world, componentsets):        
         # generate initial
         if not self.initial:
-            self.initial = Tri(world, 0, 0, 0, 0)
-            self.last = self.initial
+            self.initial = Tri(world)
+            self.lasttri = self.initial
             return
 
         # append new
         self.framecount += 1
-        for pos, color in componentsets:
-            # append triangle
-            True
-        if (self.framecount % 60 == 0):
-            x = random.random() * 2 - 1
-            y = random.random() * 2 - 1
-            z = random.random() * 2 - 1
-            ang = random.randint(0, 3) * 90
-            t = Tri(world, x, y, z, ang);
+        if self.initial == self.lasttri or (self.framecount % gentriframes == 0):
+            last = self.lasttri
+            lastpos = last.tripos
+            ang = lastpos.ang
 
+            # get existing child angles
+            seenang = [ ang ]
+            # don't want same angle as parent
+            if last.triparentang.ang != None:
+                seenang.append(last.triparentang.ang)
+            for child in last.trichildren.children:
+                seenang.append(child.tripos.ang)
+            if len(seenang) > 4:
+                print "Too many children, can't add new tri"
+                return
+
+            # get new unique child angle
+            newang = random.randint(0, 3) * 90
+            while newang in seenang:
+                newang = random.randint(0, 3) * 90
+
+            # position new child according to angles of parent and child
+            if ang == 0:
+                if newang == 90:
+                    x = lastpos.x
+                    y = lastpos.y - trisize*2
+                elif newang == 180:
+                    x = lastpos.x
+                    y = lastpos.y
+                elif newang == 270:
+                    x = lastpos.x - trisize*2
+                    y = lastpos.y
+            elif ang == 90:
+                if newang == 0:
+                    x = lastpos.x
+                    y = lastpos.y + trisize*2
+                elif newang == 180:
+                    x = lastpos.x - trisize*2
+                    y = lastpos.y
+                elif newang == 270:
+                    x = lastpos.x
+                    y = lastpos.y
+            elif ang == 180:
+                if newang == 0:
+                    x = lastpos.x
+                    y = lastpos.y
+                elif newang == 90:
+                    x = lastpos.x + trisize*2
+                    y = lastpos.y
+                elif newang == 270:
+                    x = lastpos.x + trisize*2
+                    y = lastpos.y
+            elif ang == 270:
+                if newang == 0:
+                    x = lastpos.x + trisize*2
+                    y = lastpos.y
+                elif newang == 90:
+                    x = lastpos.x + trisize*2
+                    y = lastpos.y
+                elif newang == 180:
+                    x = lastpos.x
+                    y = lastpos.y + trisize*2
+            else:
+                print "unhandled angle: %s" % newang
+
+            if x > 1 or x < -1 or y > 1 or y < -1:
+                # reset
+                resetnodes(self.initial)
+                self.initial = None
+                return
+
+            z = lastpos.z
+            t = Tri(world, x, y, z, newang, ang);
+            last.trichildren.children.append(t)
+            if len(last.trichildren.children) >= 2:
+                self.lasttri = t
+
+def resetnodes(root):
+    for child in root.trichildren.children:
+        resetnodes(child)
+        child.delete()
+
+class TriAng(object):
+    def __init__(self, ang):
+        self.ang = ang
+class TriParentAng(TriAng):
+    def __init__(self, ang):
+        super(TriParentAng, self).__init__(ang)
 class TriPos(object):
     def __init__(self, posx, posy, posz, ang):
         self.x = posx
@@ -51,6 +132,9 @@ class TriColor(object):
         self.g = g
         self.b = b
         self.a = a
+class TriChildren(object):
+    def __init__(self):
+        self.children = []
 class TriRenderer(object):
     def __init__(self):
         self.addedtime = SDL_GetTicks()
@@ -60,25 +144,30 @@ class TriRenderer(object):
             t = (SDL_GetTicks() - self.addedtime) / 150.0
             color.a = 0.001*(t*t*t + 1)
         glPushMatrix()
-        size = 0.04
+
         glTranslatef(pos.x, pos.y, pos.z)
         glRotatef(pos.ang, 0, 0, 1)
+        glScalef(0.90, 0.90, 0.90)
         glBegin(GL_TRIANGLES)
         glColor4f(color.r, color.g, color.b, color.a)
-        glVertex3f(-size, size, 0)
-        glVertex3f(-size, -size, 0)
-        glVertex3f(size, size, 0)
+
+        glVertex3f(-trisize, trisize, 0)
+        glVertex3f(-trisize, -trisize, 0)
+        glVertex3f(trisize, -trisize, 0)
+
         glEnd()
         glPopMatrix()
 
 class Tri(sdl2ext.Entity):
-    def __init__(self, world, posx=0, posy=0, posz=0, ang=0):
+    def __init__(self, world, posx=0, posy=0, posz=0, ang=0, parentang=None):
         r = random.uniform(0.8, 1.0)
         g = random.uniform(0.8, 1.0)
         b = random.uniform(0.1, 0.2)
         self.tricolor = TriColor(r, g, b, 0.0001)
         self.tripos = TriPos(posx, posy, posz, ang)
         self.trirenderer = TriRenderer()
+        self.trichildren = TriChildren()
+        self.triparentang = TriParentAng(parentang)
 
 class WorldRenderer(sdl2ext.Applicator):
     def __init__(self, window):
