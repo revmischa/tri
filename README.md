@@ -1,4 +1,8 @@
-tri
-===
+This is a PySDL2/OpenGL animated triangle drawer
 
-Simple PySDL2 triangle drawer
+
+# Installation:
+
+## Prerequisites:
+* `sudo easy_install pip`
+* `sudo pip install PySDL2 PyOpenGL PyOpenGL_accelerate`

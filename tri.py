@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#pip install PyOpenGL PyOpenGL_accelerate
 
 import sys
 import random
