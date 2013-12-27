@@ -8,11 +8,11 @@ from collections import namedtuple
 
 trisize = 0.05
 triscale = 0.85
-zrange = 0.5
 rotspeed = .4
-gentriframes = 3  # new tri every X frames
+gentriframes = 2  # new tri every X frames
+boundary = 0.8    # edge of world
 screenwidth = 1280
-screenheight = 800
+screenheight = 720
 
 try:
     from OpenGL.GL import *
@@ -83,49 +83,54 @@ class TriGenerator(sdl2ext.Applicator):
                 return
 
             # get new unique child angle
-            newang = random.randint(0, 3) * 90
+            newang = random.randint(0.0, 3.0) * 90.0
             while newang in seenang:
-                newang = random.randint(0, 3) * 90
+                newang = random.randint(0.0, 3.0) * 90.0
 
             # position new child according to angles of parent and child
             x = lastpos.x
             y = lastpos.y
             if ang == 0:
                 if newang == 90:
-                    x -= trisize*2
+                    x -= trisize*2.0
                 elif newang == 270:
-                    y -= trisize*2
+                    y -= trisize*2.0
             elif ang == 90:
                 if newang == 0:
-                    x += trisize*2
+                    x += trisize*2.0
                 elif newang == 180:
-                    y -= trisize*2
+                    y -= trisize*2.0
             elif ang == 180:
                 if newang == 90:
-                    y += trisize*2
+                    y += trisize*2.0
                 elif newang == 270:
-                    x += trisize*2
+                    x += trisize*2.0
             elif ang == 270:
                 if newang == 0:
-                    y += trisize*2
+                    y += trisize*2.0
                 elif newang == 180:
-                    x -= trisize*2
+                    x -= trisize*2.0
             else:
                 print "unhandled angle: %s" % newang
 
-            if x > 1 or x < -1 or y > 1 or y < -1:
+            if x > boundary or x < 0-boundary or y > boundary or y < 0-boundary:
                 # reset
                 resetnodes(self.initial)
                 self.initial = None
                 self.existing = {}
                 return
 
+            # somehow x/y can end up as 0.100000000000003, i do not know why
+            # i would love to know why
+            x = round(x, 10)
+            y = round(y, 10)
             # does something already exist in dest?
             tt = TriTup(x=x, y=y, ang=newang)
             # don't allow partial overlap
-            ttl = TriTup(x=x, y=y, ang=((newang+90) % 360))
-            ttr = TriTup(x=x, y=y, ang=((newang-90) % 360))
-            ttf = TriTup(x=x, y=y, ang=((newang+180) % 360))
+            ttl = TriTup(x=x, y=y, ang=((newang+90.0) % 360.0))
+            ttr = TriTup(x=x, y=y, ang=((newang+270.0) % 360.0))
+            ttf = TriTup(x=x, y=y, ang=((newang+180.0) % 360.0))
+            # print "tup: %s,%s,%s" % (tt, ttl, ttr)
             if self.existing.has_key(tt) or self.existing.has_key(ttl) or self.existing.has_key(ttr):
                 self.neednewleaf = True
                 return
@@ -174,7 +179,7 @@ class TriRenderer(object):
             color.a = 0.001*(t*t*t + 1)
         glPushMatrix()
 
-        zscale = (sin(world.framecount / 10.0)+1.01)/2.0 * 4
+        zscale = 0 #(sin(world.framecount / 10.0)+1.01)/2.0 * 4
         glTranslatef(pos.x, pos.y, -0.9)
         glRotatef(pos.ang, 0, 0, 1)
         glScalef(triscale, triscale, triscale)
