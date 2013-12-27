@@ -6,10 +6,10 @@ from random import choice, shuffle
 from math import pi, sin
 from collections import namedtuple
 
-trisize = 0.05
-triscale = 0.85
-rotspeed = .4
-gentriframes = 2  # new tri every X frames
+trisize = 0.035
+triscale = 0.9
+rotspeed = .3
+gentriframes = 1  # new tri every X frames
 boundary = 0.8    # edge of world
 screenwidth = 1280
 screenheight = 720
@@ -118,6 +118,7 @@ class TriGenerator(sdl2ext.Applicator):
                 resetnodes(self.initial)
                 self.initial = None
                 self.existing = {}
+                world.reset_colors()
                 return
 
             # somehow x/y can end up as 0.100000000000003, i do not know why
@@ -130,7 +131,6 @@ class TriGenerator(sdl2ext.Applicator):
             ttl = TriTup(x=x, y=y, ang=((newang+90.0) % 360.0))
             ttr = TriTup(x=x, y=y, ang=((newang+270.0) % 360.0))
             ttf = TriTup(x=x, y=y, ang=((newang+180.0) % 360.0))
-            # print "tup: %s,%s,%s" % (tt, ttl, ttr)
             if self.existing.has_key(tt) or self.existing.has_key(ttl) or self.existing.has_key(ttr):
                 self.neednewleaf = True
                 return
@@ -216,7 +216,10 @@ class Tri(sdl2ext.Entity):
 class TriWorld(sdl2ext.World):
     def __init__(self):
         super(TriWorld, self).__init__()
-        color_mode = random.randint(0, 4)
+        self.framecount = 0.0
+        self.reset_colors()
+    def reset_colors(self):
+        color_mode = random.randint(0, 5)
         if color_mode == 0:
             self.rgb_scale = (.2, .01, .01)
         elif color_mode == 1:
@@ -224,10 +227,11 @@ class TriWorld(sdl2ext.World):
         elif color_mode == 2:
             self.rgb_scale = (.01, .01, .2)
         elif color_mode == 3:
-            self.rgb_scale = (.2, .2, .01)
+            self.rgb_scale = (.2, .13, .01)
         elif color_mode == 4:
             self.rgb_scale = (.01, .2, .2)
-        self.framecount = 0.0
+        elif color_mode == 5:
+            self.rgb_scale = (.2, .01, .2)
 
 class WorldRenderer(sdl2ext.Applicator):
     def __init__(self, window):
