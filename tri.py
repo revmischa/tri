@@ -196,10 +196,10 @@ class TriRenderer(object):
 
 class Tri(sdl2ext.Entity):
     def __init__(self, world, posx=0.0, posy=0.0, posz=0.0, ang=0.0, parentang=None):
-        rmin = abs(sin(world.framecount / 10) / 3.0) + .3
+        rmin = abs(sin(world.framecount / 10) / 3.0) + .2
         r = random.uniform(rmin, rmin+0.1)
-        g = random.uniform(0.0, 0.1)
-        b = random.uniform(0.0, 0.1)
+        g = random.uniform(0.0, 0.01)
+        b = random.uniform(0.0, 0.01)
         self.tricolor = TriColor(r, g, b, 0.0001)
         self.tripos = TriPos(posx, posy, posz, ang)
         self.trirenderer = TriRenderer()
@@ -250,26 +250,40 @@ def run():
     sdl2ext.init()
 
     # init window
-    window = sdl2ext.Window("tri", size=(screenwidth, screenheight), flags=SDL_WINDOW_OPENGL)#|SDL_WINDOW_FULLSCREEN_DESKTOP)
+    window = sdl2ext.Window("tri", size=(screenwidth, screenheight), flags=SDL_WINDOW_OPENGL | SDL_WINDOW_FULLSCREEN_DESKTOP)
     window.show()
 
+    # init renderer and generator
     worldrenderer = WorldRenderer(window)
     trigen = TriGenerator()
 
+    # init world
     world = sdl2ext.World()
     world.framecount = 0
     world.add_system(worldrenderer)
     world.add_system(trigen)
 
+    # hide cursor
+    SDL_ShowCursor(SDL_DISABLE)
+
     running = True
     while running:
+        start = SDL_GetTicks()
+        # main loop party time
         events = sdl2ext.get_events()
         for event in events:
             if event.type == SDL_QUIT:
                 running = False
                 break
         world.process()
-        SDL_Delay(5)
+
+        # try and do 60fps
+        elapsed = (SDL_GetTicks() - start) / 1000.0
+        delay = 16.6 - elapsed
+        if delay > 0:
+            SDL_Delay(int(delay))
+
+    SDL_ShowCursor(SDL_ENABLE)
     return 0
 
 if __name__ == "__main__":
