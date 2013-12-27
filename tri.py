@@ -196,10 +196,17 @@ class TriRenderer(object):
 
 class Tri(sdl2ext.Entity):
     def __init__(self, world, posx=0.0, posy=0.0, posz=0.0, ang=0.0, parentang=None):
-        rmin = abs(sin(world.framecount / 10) / 3.0) + .2
-        r = random.uniform(rmin, rmin+0.1)
-        g = random.uniform(0.0, 0.01)
-        b = random.uniform(0.0, 0.01)
+        # calculate color for new triangle
+        frame_mod = ((sin(world.framecount / 10) + 1) / 2) / 15  # 0-1/15
+        rmin = frame_mod + world.rgb_scale[0]
+        rmax = rmin + 0.5*world.rgb_scale[0]
+        gmin = frame_mod + world.rgb_scale[1]
+        gmax = gmin + 0.5*world.rgb_scale[1]
+        bmin = frame_mod + world.rgb_scale[2]
+        bmax = bmin + 0.5*world.rgb_scale[2]
+        r = random.uniform(rmin, rmax)
+        g = random.uniform(gmin, gmax)
+        b = random.uniform(bmin, bmax)
         self.tricolor = TriColor(r, g, b, 0.0001)
         self.tripos = TriPos(posx, posy, posz, ang)
         self.trirenderer = TriRenderer()
@@ -208,6 +215,18 @@ class Tri(sdl2ext.Entity):
 
 class TriWorld(sdl2ext.World):
     def __init__(self):
+        super(TriWorld, self).__init__()
+        color_mode = random.randint(0, 4)
+        if color_mode == 0:
+            self.rgb_scale = (.2, .01, .01)
+        elif color_mode == 1:
+            self.rgb_scale = (.01, .2, .01)
+        elif color_mode == 2:
+            self.rgb_scale = (.01, .01, .2)
+        elif color_mode == 3:
+            self.rgb_scale = (.2, .2, .01)
+        elif color_mode == 4:
+            self.rgb_scale = (.01, .2, .2)
         self.framecount = 0.0
 
 class WorldRenderer(sdl2ext.Applicator):
@@ -258,8 +277,7 @@ def run():
     trigen = TriGenerator()
 
     # init world
-    world = sdl2ext.World()
-    world.framecount = 0
+    world = TriWorld()
     world.add_system(worldrenderer)
     world.add_system(trigen)
 
